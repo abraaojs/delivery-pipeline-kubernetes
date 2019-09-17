@@ -10,6 +10,8 @@ podTemplate(label: 'mypod', containers: [
 ) {
 def releasedVersion
 node('mypod') {
+    def dockerTool = tool name: 'docker', type: 'org.jenkinsci.plugins.docker.commons.tools.DockerTool'
+    withEnv(["DOCKER=${dockerTool}/bin"]) {
     stage('Prepare Check running containers') {
         container('docker') {
         sh 'hostname -i'   
@@ -91,6 +93,7 @@ node('mypod') {
      }
     }
   }
+}  
 def docker(args) {
     sh "sudo ${DOCKER}/docker ${args}"
 }
