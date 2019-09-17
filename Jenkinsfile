@@ -18,7 +18,7 @@ node('mypod') {
         parallel Checkout: {
             checkout scm
         }, 'Run Zalenium': {
-            dockerCmd '''run -d --name zalenium -p 4444:4444 \
+            docker '''run -d --name zalenium -p 4444:4444 \
             -v /var/run/docker.sock:/var/run/docker.sock \
             --network="host" \
             --privileged dosel/zalenium:3.4.0a start --videoRecordingEnabled false --chromeContainers 1 --firefoxContainers 0'''
@@ -30,7 +30,7 @@ node('mypod') {
         withMaven(maven: 'Maven 3') {
             dir('app') {
                 sh 'mvn clean package'
-                dockerCmd 'build --tag automatingguy/sparktodo:SNAPSHOT .'
+                docker 'build --tag automatingguy/sparktodo:SNAPSHOT .'
             }
         }
     }
@@ -39,7 +39,7 @@ node('mypod') {
     stage('Deploy') {
         stage('Deploy') {
             dir('app') {
-                dockerCmd 'run -d -p 9999:9999 --name "snapshot" --network="host" automatingguy/sparktodo:SNAPSHOT'
+                docker 'run -d -p 9999:9999 --name "snapshot" --network="host" automatingguy/sparktodo:SNAPSHOT'
             }
         }
     }
@@ -54,8 +54,8 @@ node('mypod') {
             archiveArtifacts 'tests/rest-assured/build/**'
         }
 
-        dockerCmd 'rm -f snapshot'
-        dockerCmd 'run -d -p 9999:9999 --name "snapshot" --network="host" automatingguy/sparktodo:SNAPSHOT'
+        docker 'rm -f snapshot'
+        docker 'run -d -p 9999:9999 --name "snapshot" --network="host" automatingguy/sparktodo:SNAPSHOT'
 
         try {
             withMaven(maven: 'Maven 3') {
@@ -68,9 +68,9 @@ node('mypod') {
             archiveArtifacts 'tests/bobcat/target/**'
         }
 
-        dockerCmd 'rm -f snapshot'
-        dockerCmd 'stop zalenium'
-        dockerCmd 'rm zalenium'
+        docker 'rm -f snapshot'
+        docker 'stop zalenium'
+        docker 'rm zalenium'
     }
 
     stage('Release') {
@@ -81,17 +81,17 @@ node('mypod') {
                     sh "git config user.email test@automatingguy.com && git config user.name Jenkins"
                     sh "mvn release:prepare release:perform -Dusername=${username} -Dpassword=${password}"
                 }
-                dockerCmd "build --tag automatingguy/sparktodo:${releasedVersion} ."
+                docker "build --tag automatingguy/sparktodo:${releasedVersion} ."
             }
         }
     }
 
     stage('Deploy @ Prod') {
-        dockerCmd "run -d -p 9999:9999 --name 'production' automatingguy/sparktodo:${releasedVersion}"
+        docker "run -d -p 9999:9999 --name 'production' automatingguy/sparktodo:${releasedVersion}"
      }
     }
   }
-def dockerCmd(args) {
+def docker(args) {
     sh "sudo ${DOCKER}/docker ${args}"
 }
 def getReleasedVersion() {
